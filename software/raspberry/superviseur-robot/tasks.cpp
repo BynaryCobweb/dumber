@@ -26,6 +26,7 @@
 #define PRIORITY_TRECEIVEFROMMON 25
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
+#define PRIORITY_TBATTERY 15
 
 /*
  * Some remarks:
@@ -123,6 +124,10 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_task_create(&th_battery, "th_battery", 0, PRIORITY_TBATTERY, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -167,7 +172,10 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-
+	if (err = rt_task_start(&th_battery, (void(*)(void*)) & Tasks::GetBattery, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks launched" << endl << flush;
 }
 
@@ -413,5 +421,36 @@ Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
     } /**/
 
     return msg;
+}
+
+void Tasks::GetBattery(void* args){
+	int rs;
+
+	cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+	rt_task_set_periodic(NULL, TM_NOW, 500000000);
+	while(1){
+		rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+		rs = robotStarted;
+		rt_mutex_release(&mutex_robotStarted);
+
+		if (rs=1){
+			rt_task_wait_period(NULL);
+
+			Message *msg ;
+			Message *msgRCV;
+
+
+			msg = new Message(MESSAGE_ROBOT_BATTERY_GET);
+
+	   		rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+			msgRCV = robot.Write(msg);
+			rt_mutex_release(&mutex_robot);
+
+			WriteInQueue(&q_messageToMon,msgRCV);
+		}
+	}
 }
 
