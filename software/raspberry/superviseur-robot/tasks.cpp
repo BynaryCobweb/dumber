@@ -74,6 +74,10 @@ void Tasks::Init() {
         cerr << "Error mutex create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_mutex_create(&mutex_WD, NULL)){
+        cerr << "Error mutex create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+	}
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -116,7 +120,7 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_startRobot, "th_startRobot", 0, PRIORITY_TSTARTROBOT, 0)) {
+    if (err = rt_task_create(&th_startRobot, "th_startRobotWithoutWatchdog", 0, PRIORITY_TSTARTROBOT, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -164,7 +168,7 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_startRobot, (void(*)(void*)) & Tasks::StartRobotTask, this)) {
+    if (err = rt_task_start(&th_startRobot, (void(*)(void*)) & Tasks::StartRobotTaskWithoutWatchdog, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -322,9 +326,44 @@ void Tasks::OpenComRobot(void *arg) {
 }
 
 /**
- * @brief Thread starting the communication with the robot.
+ * @brief Thread starting the communication with the robot without watchdog.
  */
-void Tasks::StartRobotTask(void *arg) {
+void Tasks::StartRobotTaskWithoutWatchdog(void *arg) {
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+    /**************************************************************************************/
+    /* The task startRobot starts here                                                    */
+    /**************************************************************************************/
+    while (1) {
+
+        Message * msgSend;
+        rt_sem_p(&sem_startRobot, TM_INFINITE);
+        cout << "Start robot without watchdog (";
+        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+        msgSend = robot.Write(robot.StartWithoutWD());
+        rt_mutex_release(&mutex_robot);
+        cout << msgSend->GetID();
+        cout << ")" << endl;
+
+        cout << "Movement answer: " << msgSend->ToString() << endl << flush;
+        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+
+        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            robotStarted = 1;
+            rt_mutex_release(&mutex_robotStarted);
+        }
+    }
+}
+
+
+
+/**
+ * @brief Thread starting the communication with the robot with watchdog.
+ */
+void Tasks::StartRobotTaskWithWatchdog(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
@@ -372,7 +411,7 @@ void Tasks::MoveTask(void *arg) {
 
     while (1) {
         rt_task_wait_period(NULL);
-        cout << "Periodic movement update";
+        //cout << "Periodic movement update";
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
@@ -387,7 +426,7 @@ void Tasks::MoveTask(void *arg) {
             robot.Write(new Message((MessageID)cpMove));
             rt_mutex_release(&mutex_robot);
         }
-        cout << endl << flush;
+        //cout << endl << flush;
     }
 }
 
@@ -436,14 +475,14 @@ void Tasks::GetBattery(void* args){
 		rs = robotStarted;
 		rt_mutex_release(&mutex_robotStarted);
 
-		if (rs=1){
+		if (rs){
 			rt_task_wait_period(NULL);
 
 			Message *msg ;
 			Message *msgRCV;
 
 
-			msg = new Message(MESSAGE_ROBOT_BATTERY_GET);
+			msg = ComRobot::GetBattery();
 
 	   		rt_mutex_acquire(&mutex_robot, TM_INFINITE);
 			msgRCV = robot.Write(msg);
