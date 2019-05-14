@@ -22,11 +22,12 @@
 #define PRIORITY_TSERVER 30
 #define PRIORITY_TOPENCOMROBOT 20
 #define PRIORITY_TMOVE 20
-#define PRIORITY_TSENDTOMON 22
+#define PRIORITY_TSENDTOMON 23
 #define PRIORITY_TRECEIVEFROMMON 25
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERY 15
+#define PRIORITY_TWATCHDOG 22
 
 /*
  * Some remarks:
@@ -120,7 +121,7 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_startRobot, "th_startRobotWithoutWatchdog", 0, PRIORITY_TSTARTROBOT, 0)) {
+    if (err = rt_task_create(&th_startRobot, "th_startRobot", 0, PRIORITY_TSTARTROBOT, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -129,6 +130,10 @@ void Tasks::Init() {
         exit(EXIT_FAILURE);
     }
 	if (err = rt_task_create(&th_battery, "th_battery", 0, PRIORITY_TBATTERY, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_create(&th_watchdog, "th_watchdog", 0, PRIORITY_TWATCHDOG, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -168,7 +173,7 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_startRobot, (void(*)(void*)) & Tasks::StartRobotTaskWithoutWatchdog, this)) {
+    if (err = rt_task_start(&th_startRobot, (void(*)(void*)) & Tasks::StartRobotTask, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -177,6 +182,10 @@ void Tasks::Run() {
         exit(EXIT_FAILURE);
     }
 	if (err = rt_task_start(&th_battery, (void(*)(void*)) & Tasks::GetBattery, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_start(&th_watchdog, (void(*)(void*)) & Tasks::Watchdog, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -277,7 +286,9 @@ void Tasks::ReceiveFromMonTask(void *arg) {
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
             rt_sem_v(&sem_openComRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
-            rt_sem_v(&sem_startRobot);
+            WD=false;
+		} else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)){
+			WD=true;
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
@@ -328,7 +339,7 @@ void Tasks::OpenComRobot(void *arg) {
 /**
  * @brief Thread starting the communication with the robot without watchdog.
  */
-void Tasks::StartRobotTaskWithoutWatchdog(void *arg) {
+void Tasks::StartRobotTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
@@ -342,7 +353,12 @@ void Tasks::StartRobotTaskWithoutWatchdog(void *arg) {
         rt_sem_p(&sem_startRobot, TM_INFINITE);
         cout << "Start robot without watchdog (";
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        msgSend = robot.Write(robot.StartWithoutWD());
+		if(WD){
+        	msgSend = robot.Write(robot.StartWithWD());
+		}
+		else {
+			msgSend = robot.Write(robot.StartWithoutWD());
+		}
         rt_mutex_release(&mutex_robot);
         cout << msgSend->GetID();
         cout << ")" << endl;
@@ -355,42 +371,49 @@ void Tasks::StartRobotTaskWithoutWatchdog(void *arg) {
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
         }
+		if(WD){
+			rt_sem_v(&sem_WD);
+		}
     }
 }
 
 
+void Tasks::Watchdog(void *arg) {
+	cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+	 rt_sem_p(&sem_barrier, TM_INFINITE);
+	
+	rt_sem_p(&sem_WD,TM_INFINITE);
+	
+	rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
-/**
- * @brief Thread starting the communication with the robot with watchdog.
- */
-void Tasks::StartRobotTaskWithWatchdog(void *arg) {
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
-    rt_sem_p(&sem_barrier, TM_INFINITE);
-    
-    /**************************************************************************************/
-    /* The task startRobot starts here                                                    */
-    /**************************************************************************************/
-    while (1) {
+	int connected=3;
+	while(connected > 0){
+		rt_task_wait_period(NULL);
 
-        Message * msgSend;
-        rt_sem_p(&sem_startRobot, TM_INFINITE);
-        cout << "Start robot without watchdog (";
-        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        msgSend = robot.Write(robot.StartWithoutWD());
-        rt_mutex_release(&mutex_robot);
-        cout << msgSend->GetID();
-        cout << ")" << endl;
+		rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+    	Message *msgSend = robot.Write(robot.Ping());
+    	rt_mutex_release(&mutex_robot);
 
-        cout << "Movement answer: " << msgSend->ToString() << endl << flush;
-        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+		if(msgSend->GetID() == MESSAGE_ANSWER_ACK){
+			connected=3;
+		}
+		else{
+			connected--;
+		}
+	}
+	
+	cout << "Robot did not respond in time, reinitialization of all processes"; //message console
+	WriteInQueue(&q_messageToMon,new Message(MESSAGE_ANSWER_ROBOT_TIMEOUT)); //message monitor
 
-        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
-            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-            robotStarted = 1;
-            rt_mutex_release(&mutex_robotStarted);
-        }
-    }
+	rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+    robot.Open();  //commnication robot close
+    rt_mutex_release(&mutex_robot);
+
+	rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+    robotStarted = 0;  //robot reinitialized
+   	rt_mutex_release(&mutex_robotStarted);
+	
+
 }
 
 /**
