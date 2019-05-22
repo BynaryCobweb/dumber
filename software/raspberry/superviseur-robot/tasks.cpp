@@ -100,6 +100,10 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_sem_create(&sem_WD, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Semaphores created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -287,8 +291,10 @@ void Tasks::ReceiveFromMonTask(void *arg) {
             rt_sem_v(&sem_openComRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
             WD=false;
+			rt_sem_v(&sem_startRobot);
 		} else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)){
 			WD=true;
+			rt_sem_v(&sem_startRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
@@ -371,7 +377,11 @@ void Tasks::StartRobotTask(void *arg) {
             robotStarted = 1;
             rt_mutex_release(&mutex_robotStarted);
         }
-		if(WD){
+		rt_mutex_acquire(&mutex_WD, TM_INFINITE);
+		bool currentWD = WD;
+		rt_mutex_release(&mutex_WD);
+
+		if(currentWD){
 			rt_sem_v(&sem_WD);
 		}
     }
@@ -381,17 +391,15 @@ void Tasks::StartRobotTask(void *arg) {
 void Tasks::Watchdog(void *arg) {
 	cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
 	 rt_sem_p(&sem_barrier, TM_INFINITE);
-	
+
 	rt_sem_p(&sem_WD,TM_INFINITE);
 	
-	rt_task_set_periodic(NULL, TM_NOW, 100000000);
-
+	rt_task_set_periodic(NULL, TM_NOW, 1000000000);
 	int connected=3;
 	while(connected > 0){
 		rt_task_wait_period(NULL);
-
 		rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-    	Message *msgSend = robot.Write(robot.Ping());
+    	Message *msgSend = robot.Write(robot.ReloadWD());
     	rt_mutex_release(&mutex_robot);
 
 		if(msgSend->GetID() == MESSAGE_ANSWER_ACK){
@@ -485,6 +493,11 @@ Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
     return msg;
 }
 
+
+/**
+*Get the level of battery all 500ms
+*
+**/
 void Tasks::GetBattery(void* args){
 	int rs;
 
@@ -515,4 +528,7 @@ void Tasks::GetBattery(void* args){
 		}
 	}
 }
+
+
+
 
