@@ -38,6 +38,7 @@ using namespace std;
 
 class Tasks {
 public:
+
     /**
      * @brief Initializes main structures (semaphores, tasks, mutex, etc.)
      */
@@ -64,6 +65,7 @@ private:
     /**********************************************************************/
     ComMonitor monitor;
     ComRobot robot;
+	Camera camera;
     int robotStarted = 0;
     int move = MESSAGE_ROBOT_STOP;
 	bool WD = false;
@@ -100,6 +102,7 @@ private:
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
 	RT_SEM sem_WD;
+	RT_SEM sem_camera;
 
     /**********************************************************************/
     /* Message queues                                                     */
