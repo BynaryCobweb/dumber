@@ -28,6 +28,9 @@
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERY 15
 #define PRIORITY_TWATCHDOG 22
+#define PRIORITY_TSTARTCAMERA 18
+#define PRIORITY_TCAMERA 16
+#define PRIORITY_TARENA 17
 
 /*
  * Some remarks:
@@ -141,6 +144,18 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_task_create(&th_startCamera, "th_startCamera", 0, PRIORITY_TSTARTCAMERA, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_create(&th_camera, "th_camera", 0, PRIORITY_TCAMERA, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_create(&th_arena, "th_arena", 0, PRIORITY_TARENA, 0)) {
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -190,6 +205,18 @@ void Tasks::Run() {
         exit(EXIT_FAILURE);
     }
 	if (err = rt_task_start(&th_watchdog, (void(*)(void*)) & Tasks::Watchdog, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_start(&th_startCamera, (void(*)(void*)) & Tasks::StartCamera, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_start(&th_camera, (void(*)(void*)) & Tasks::Camera, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_start(&th_arena, (void(*)(void*)) & Tasks::Arena, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -530,5 +557,14 @@ void Tasks::GetBattery(void* args){
 }
 
 
+void Tasks::StartCamera(void * args){
+	while(1){}
+}
 
+void Tasks::Camera(void * args){
+	while(1){}
+}
 
+void Tasks::Arena(void * args){
+	while(1){}
+}

@@ -79,6 +79,9 @@ private:
     RT_TASK th_move;
 	RT_TASK th_battery;
 	RT_TASK th_watchdog;
+	RT_TASK th_startCamera;
+	RT_TASK th_camera;
+	RT_TASK th_arena;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -163,6 +166,25 @@ private:
 	* Thread starting the periodic query for battery level (500ms)
 	*/
 	void GetBattery(void * args);
+
+
+	/**
+	* @brief Thread starting the Camera
+	*/
+	void StartCamera(void * args);
+
+
+	/**
+	* @brief Thread recording a pic every 100ms
+	*/
+	void Camera(void * args);
+
+	/**
+	* @brief Thread for arena research which has two modes
+	* mode 1 : position calcul
+	* mode 2 : arena research
+	*/
+	void Arena(void * args);
 
 };
 
