@@ -25,7 +25,6 @@
 #define PRIORITY_TSENDTOMON 23
 #define PRIORITY_TRECEIVEFROMMON 25
 #define PRIORITY_TSTARTROBOT 20
-#define PRIORITY_TCAMERA 21
 #define PRIORITY_TBATTERY 15
 #define PRIORITY_TWATCHDOG 22
 #define PRIORITY_TSTARTCAMERA 18
@@ -216,7 +215,7 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-	if (err = rt_task_start(&th_camera, (void(*)(void*)) & Tasks::Camera, this)) {
+	if (err = rt_task_start(&th_camera, (void(*)(void*)) & Tasks::RecordCamera, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -321,10 +320,14 @@ void Tasks::ReceiveFromMonTask(void *arg) {
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
             rt_sem_v(&sem_openComRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
+			rt_mutex_acquire(&mutex_WD, TM_INFINITE);
             WD=false;
+			rt_mutex_release(&mutex_WD);
 			rt_sem_v(&sem_startRobot);
 		} else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)){
+			rt_mutex_acquire(&mutex_WD,TM_INFINITE);
 			WD=true;
+			rt_mutex_release(&mutex_WD);
 			rt_sem_v(&sem_startRobot);
 		} else if (msgRcv->CompareID(MESSAGE_CAM_OPEN)){
 			rt_sem_v(&sem_camera);
@@ -575,7 +578,9 @@ void Tasks::StartCamera(void * args){
 	while(1){
 		isOpen=camera.Open();
 		if(isOpen){
+			rt_mutex_acquire(&mutex_camStarted,TM_INFINITE);
 			camStarted=1;
+			rt_mutex_release(&mutex_camStarted);
 		}
 		else{
 			WriteInQueue(&q_messageToMon,new Message(MESSAGE_CAM_CLOSE));
@@ -583,7 +588,7 @@ void Tasks::StartCamera(void * args){
 	}
 }
 
-void Tasks::Camera(void * args){
+void Tasks::RecordCamera(void * args){
 	while(1){}
 }
 

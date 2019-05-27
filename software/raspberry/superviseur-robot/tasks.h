@@ -67,6 +67,7 @@ private:
     ComRobot robot;
 	Camera camera;
     int robotStarted = 0;
+	int camStarted = 0;
     int move = MESSAGE_ROBOT_STOP;
 	bool WD = false;
     
@@ -93,6 +94,7 @@ private:
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
 	RT_MUTEX mutex_WD;
+	RT_MUTEX mutex_camStarted;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -180,7 +182,7 @@ private:
 	/**
 	* @brief Thread recording a pic every 100ms
 	*/
-	void Camera(void * args);
+	void RecordCamera(void * args);
 
 	/**
 	* @brief Thread for arena research which has two modes
