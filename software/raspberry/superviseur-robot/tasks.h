@@ -70,7 +70,9 @@ private:
 	int camStarted = 0;
     int move = MESSAGE_ROBOT_STOP;
 	bool WD = false;
-    
+	bool modeImg = true;
+	Img* SavedImage;    
+
     /**********************************************************************/
     /* Tasks                                                              */
     /**********************************************************************/
@@ -83,7 +85,7 @@ private:
 	RT_TASK th_battery;
 	RT_TASK th_watchdog;
 	RT_TASK th_startCamera;
-	RT_TASK th_camera;
+	RT_TASK th_recordCamera;
 	RT_TASK th_arena;
     
     /**********************************************************************/
@@ -91,10 +93,13 @@ private:
     /**********************************************************************/
     RT_MUTEX mutex_monitor;
     RT_MUTEX mutex_robot;
+	RT_MUTEX mutex_camera;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
 	RT_MUTEX mutex_WD;
 	RT_MUTEX mutex_camStarted;
+	RT_MUTEX mutex_modeImg;
+	RT_MUTEX mutex_SavedImage;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -105,6 +110,7 @@ private:
     RT_SEM sem_startRobot;
 	RT_SEM sem_WD;
 	RT_SEM sem_camera;
+	RT_SEM sem_recordCamera;
 
     /**********************************************************************/
     /* Message queues                                                     */
