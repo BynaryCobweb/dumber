@@ -678,8 +678,14 @@ void Tasks::RecordCamera(void * args){
 
 	bool MImg;
 	bool camOpen;
+
 	Message msgImg;
+
 	Img* image;
+	Img* arena;
+
+	std:list<Position> robots;	
+
 	while(1){
 
 		rt_sem_p(&sem_recordCamera, TM_INFINITE);
@@ -705,8 +711,21 @@ void Tasks::RecordCamera(void * args){
 			WriteInQueue(&q_messageToMon,new MessageImg(MESSAGE_CAM_IMAGE, image));
 
 		}else if(camOpen) {//mode position
+			
+			rt_mutex_acquire(&mutex_camera,TM_INFINITE);			
+			image=camera.Grab().Copy();
+			rt_mutex_release(&mutex_camera);
 
-			cout << "Mode Position TBD" << endl << flush;
+			rt_mutex_acquire(&mutex_ImgArena,TM_INFINITE);
+			arena=ImgArena;
+			rt_mutex_release(&mutex_ImgArena);
+
+			robots=image->SearchRobot(arena->SearchArena());
+			image->DrawArena(arena->SearchArena());
+			image->DrawAllRobots(robots);
+
+			WriteInQueue(&q_messageToMon, new MessageImg(MESSAGE_CAM_IMAGE,image));
+
 		}
 
 		rt_sem_v(&sem_recordCamera);
