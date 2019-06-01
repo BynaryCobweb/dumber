@@ -71,7 +71,9 @@ private:
     int move = MESSAGE_ROBOT_STOP;
 	bool WD = false;
 	bool modeImg = true;
-	Img* SavedImage;    
+	bool arenaOK;
+	Img* SavedImage;  
+	Img* ImgArena;  
 
     /**********************************************************************/
     /* Tasks                                                              */
@@ -100,6 +102,8 @@ private:
 	RT_MUTEX mutex_camStarted;
 	RT_MUTEX mutex_modeImg;
 	RT_MUTEX mutex_SavedImage;
+	RT_MUTEX mutex_ImgArena;
+	RT_MUTEX mutex_arenaOK;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -111,6 +115,8 @@ private:
 	RT_SEM sem_WD;
 	RT_SEM sem_camera;
 	RT_SEM sem_recordCamera;
+	RT_SEM sem_arena;
+	RT_SEM sem_arena_OK;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -195,7 +201,7 @@ private:
 	* mode 1 : position calcul
 	* mode 2 : arena research
 	*/
-	void Arena(void * args);
+	void ArenaTask(void * args);
 
 };
 
