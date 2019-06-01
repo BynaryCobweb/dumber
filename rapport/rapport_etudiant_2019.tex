@@ -41,42 +41,6 @@
 % PAGE DE GARDE
 \maketitle
 
-
-{\color{red}
-\begin{framed}
-\begin{center}{\bf\Large --- Ce qu'il faut faire --- } \end{center}
-
-{\bf Remplacez tous les textes en bleu et supprimer les textes en rouge}\\
-
-
-{\bf Le rapport est à rendre en pdf et à déposer sur moodle avant le 31 mars 2019 23h59:
-\url{https://moodle.insa-toulouse.fr/mod/assign/view.php?id=33071}}\\
-
-{\bf Vous devez \underline{aussi} rendre les fichiers {\tt tasks.h} et {\tt tasks.cpp}.}\\
-
-Vous pouvez utiliser word ou un autre logiciel d'édition pour rédiger ce rapport, par contre vous devez  {\bf impérativement respecter la structure ci-après et le rendre au format pdf}.\\
-
-
-Critères d'évaluation :
-\begin{itemize}
-	\item Qualité rédactionnelle,
-	\item Exhaustivité et justesse des règles de codage,
-	\item Qualité de la conception (clarté, respect de la syntaxe, exhaustivité, justesse),
-	\item Qualité des explications,
-	\item Respect des règles dans la production du code.\\
-\end{itemize}
-
-Compétences évaluées :
-\begin{itemize}
-	\item rédaction et communication sur un dossier de conception,
-	\item concevoir une application concurrente temps réel,
-	\item analyser une conception,
-	\item passer d'un modèle de conception à une implémentation,
-	\item écriture de code et utilisation de primitives au niveau système.
-\end{itemize}
-\end{framed}
-}
-
 %%%%%%%%%%%%%%
 % DEBUT DU RAPPORT
 \newpage
@@ -109,10 +73,12 @@ Compétences évaluées :
 % DIAGRAMME FONCTIONNEL GT MONITEUR
 \subsubsection{Diagramme fonctionnel du groupe gestion du moniteur}
 
+{Le moniteur a pour fonction de gérer les communication avec le robot, de récupérer les informations (niveau de batterie, perte de connexion...) et d'envoyer des ordres permettant d'effectuer les différentes actions (déplacer robot, allumer camera...).}
+
 \begin{figure}[htbp]
 \label{fig:diag_fonc_moniteur}
 \begin{center}
-{\includegraphics[scale=.5]{./figures-pdf/diag_fonc_moniteur}}
+{\includegraphics[scale=.4]{./dossier_conception/diag_fonc_moniteur}}
 {\caption{Diagramme fonctionnel du groupe de threads gestion du moniteur}}
 \end{center}
 \end{figure}
@@ -164,8 +130,9 @@ Compétences évaluées :
 {\caption{Diagramme d'activité du thread {\tt th\_sendToMon}}}
 \end{center}
 \end{figure}
+\FloatBarrier
 
-{ Le thread th\_receiveFromMon reçoit des messages provenant du moniteur ordonnant une certaine action et le robot va donc les effectuer. Les actions pouvant être demandées sont: ouverture de la communication, démarrage avec et sans watchdog, ouverture de la camera, déplacement du robot, changement du mode de capture de la camera et affichage d'une image. }\\
+{ Le thread th\_receiveFromMon reçoit des messages provenant du moniteur ordonnant une certaine action et le robot va donc les effectuer. Les actions pouvant être demandées sont: ouverture de la communication, démarrage avec et sans watchdog, ouverture de la camera, déplacement du robot, changement du mode de capture de la camera et affichage d'une image. }
 
 \begin{figure}[htp]
 \label{fig:act_communiquer}
@@ -174,6 +141,7 @@ Compétences évaluées :
 {\caption{Diagramme d'activité du thread {\tt th\_receiveFromMon}}}
 \end{center}
 \end{figure}
+\FloatBarrier
 
 % DIAGRAMME FONCTIONNEL GT VISION
 \subsection{Groupe de threads vision}
@@ -181,12 +149,18 @@ Compétences évaluées :
 % DIAGRAMME FONCTIONNEL GT VISION
 \subsubsection{Diagramme fonctionnel du groupe vision}
 
-{\color{blue} Ajoutez le diagramme fonctionnel du groupe de threads de vision.}
+{Le groupe vision contient tout ce qui est camera et arène. Il va permettre d'allumer la camèra, de capturer des images dans deux modes différents (position et image) et de chercher une arène sur une photo.}
+
+\begin{figure}[htp]
+\label{fig:act_communiquer}
+\begin{center}
+{\includegraphics[scale=.4]{./dossier_conception/diag_fonc_vision.png}}
+{\caption{Diagramme fonctionnel du groupe de threads gestion de la vision}}
+\end{center}
+\end{figure}
 
 % DESCRIPTION THREADS GT VISION
 \subsubsection{Description des threads du groupe vision}
-{\color{red} Remplissez le tableau ci-dessous pour expliquer le rôle de chaque thread et donner son niveau de priorité.}
-
 
 \begin{table}[htp]
 \caption{Description des threads du groupe {\tt th\_group\_vision}}
@@ -210,7 +184,38 @@ Compétences évaluées :
 
 % DIAGRAMMES D'ACTIVITE GT VISION
 \subsubsection{Diagrammes d'activité du groupe vision}
-{\color{blue}Décrivez le comportement de chacun de vos threads avec des diagrammes d'activité. Apportez les explications qui vous semblent nécessaires pour comprendre votre conception.}
+{Le thread th\_startCamera reçoit un message du moniteur lui ordonnant de démarrer la caméra, il le fait et notifie le moniteur si il y a une erreur.}
+
+\begin{figure}[htbp]
+\label{fig:act_envoyer}
+\begin{center}
+{\includegraphics[scale=.3]{./dossier_conception/th_startCamera}}
+{\caption{Diagramme d'activité du thread {\tt th\_startCamera}}}
+\end{center}
+\end{figure}
+\FloatBarrier
+
+{Le thread th\_arena démarre lorsque que l'utilisateur appuie sur un bouton. Ce thread reçoit alors un ordre du moniteur de chercher l'arène sur une image. Le thread va donc mettre en pause la caméra, prendre une photo et chercher l'arène sur cette photo. Si il la trouve, il notifie le moniteur qui va demander confirmation à l'utilisateur. Si l'utilisateur confirme que la photo est bien l'arène, le thread th\_arena va enregistrer l'image et s'éteindre. }
+
+\begin{figure}[htbp]
+\label{fig:act_envoyer}
+\begin{center}
+{\includegraphics[scale=.3]{./dossier_conception/th_arena}}
+{\caption{Diagramme d'activité du thread {\tt th\_arena}}}
+\end{center}
+\end{figure}
+\FloatBarrier
+
+{Le thread th\_RecordCamera gère la caméra périodiquement (100ms). Il permet de lancer la caméra dans deux modes différents. Le premier est le mode position qui permet de chercher un robot dans l'arène et de renvoyer sa position. Le deuxième mode est le mode image qui prend des photos et les renvoit au moniteur. Le thread peut également être mis en pause.}
+
+\begin{figure}[htbp]
+\label{fig:act_envoyer}
+\begin{center}
+{\includegraphics[scale=.3]{./dossier_conception/th_RecordCamera}}
+{\caption{Diagramme d'activité du thread {\tt th\_RecordCamera}}}
+\end{center}
+\end{figure}
+\FloatBarrier
 
 
 % DIAGRAMME FONCTIONNEL GT ROBOT
@@ -218,12 +223,18 @@ Compétences évaluées :
 
 % DIAGRAMME FONCTIONNEL GT ROBOT
 \subsubsection{Diagramme fonctionnel du groupe gestion robot}
-{\color{blue} Ajoutez le diagramme fonctionnel du groupe de threads de gestion du robot.}
+{Le groupe de gestion du robot permet d'effectuer les différentes actions du robot, notamment son déplacement, l'ouverture de ses communications, contrôler son niveau de batterie et surveiller sa connexion avec le moniteur.}
+
+\begin{figure}[htp]
+\label{fig:act_communiquer}
+\begin{center}
+{\includegraphics[scale=.4]{./dossier_conception/diag_fonc_robot.png}}
+{\caption{Diagramme fonctionnel du groupe de threads gestion du robot}}
+\end{center}
+\end{figure}
 
 % DESCRIPTION THREADS GT ROBOT
 \subsubsection{Description des threads du groupe gestion robot}
-{\color{red} Remplissez le tableau ci-dessous pour expliquer le rôle de chaque thread et donner son niveau de priorité.}
-
 
 \begin{table}[htp]
 \caption{Description des threads du groupe {\tt th\_group\_gestion\_robot}}
@@ -251,96 +262,104 @@ Compétences évaluées :
 
 % DIAGRAMMES D'ACTIVITE GT ROBOT
 \subsubsection{Diagrammes d'activité du groupe robot}
-{\color{blue}Décrivez le comportement de chacun de vos threads avec des diagrammes d'activité. Apportez les explications qui vous semblent nécessaires pour comprendre votre conception.}
+{Nous n'allons pas décrire les threads th\_openComRobot et th\_move car nous ne les avons pas modifié. Pour ce qui est du thread th\_startRobot nous n'avons fait qu'une légère modification afin de la démarrer avec ou sans watchdog.}\\ \\
 
+{Le thread th\_watchdog va se lancer si le robot est démarré en mode watchdog. Ce thread va envoyer des messages périodiquement (1s) au robot et si 3 messages de suite sont n'ont pas de réponse, le système entier (moniteur, robot...) sera éteint.}
+
+\begin{figure}[htbp]
+\label{fig:act_envoyer}
+\begin{center}
+{\includegraphics[scale=.3]{./dossier_conception/th_watchdog}}
+{\caption{Diagramme d'activité du thread {\tt th\_watchdog}}}
+\end{center}
+\end{figure}
+\FloatBarrier
+
+{Le thread th\_battery permet d'envoyer un message toutes les 500ms au moniteur contenant le niveau de batterie du robot.}
+
+\begin{figure}[htbp]
+\label{fig:act_envoyer}
+\begin{center}
+{\includegraphics[scale=.3]{./dossier_conception/th_battery}}
+{\caption{Diagramme d'activité du thread {\tt th\_battery}}}
+\end{center}
+\end{figure}
+\FloatBarrier
 
 %%%%%%%%%%%%%%%
 % ANALYSE ET VALIDATION
 \section{Analyse et validation de la conception}
 
-{\color{red}Pour chacune des fonctionnalités attendues, indiquez si elle a été réalisée. Ajoutez d'éventuelles remarques de conception si le fonctionnement n'est pas exactement celui attendu et justifiez le respect des propriétés temporelles. Vous n'êtes pas obligé de répondre à ces éléments pour les fonctionnalités réalisées dans la conception préliminaire (ces fonctionnalités sont indiquées dans la suite par un astérisque). Si vous ne souhaitez pas apporter de détails supplémentaires pour ces fonctionnalités, supprimez les de la liste ci-dessous.}
-
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Le lancement du serveur doit être réalisé au démarrage du superviseur. En cas d'échec du démarrage du serveur, un message textuel doit être  affiché sur la console de lancement de l'application. Ce message doit signaler le problème et le superviseur doit s'arrêter.
 
-\paragraph{\color{black}Réalisation :}  {\color{blue} Fait en partie. La fonctionnalité est impléméntée sauf pour l'arrêt suite à l'échec de démarrage du serveur. L'implémentation actuelle stoppe la tâche en charge du démarrage du serveur, mais pas l'ensemble de l'application. Après discussion avec le client, la version actuelle est suffisante.}
 }
 %%%
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} La connexion entre le moniteur et le superviseur (via le socket) doit être établie suite à la demande de connexion de l'utilisateur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
-}
-
 %%%
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Tous les messages envoyés depuis le moniteur doivent être réceptionnés par le superviseur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} L'application superviseur doit être capable d'envoyer les messages au moniteur (via le serveur) avec un délai d'au plus 10~ms.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
-}
 %%%
 \stepcounter{cptreq}
-\subsection{Fonctionnalité \thecptreq}
+\subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Le superviseur doit détecter la perte de communication avec le moniteur. En cas de perte de la communication un message doit être affiché sur la console de lancement du superviseur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
 %%%
 \stepcounter{cptreq}
-\subsection{Fonctionnalité \thecptreq}
+\subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} En cas de perte de communication entre le superviseur et moniteur, il faut stopper le robot,  la communication avec le robot, fermer le serveur et déconnecter la caméra afin de revenir dans le même état qu'au démarrage du superviseur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
 %%%
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Dès que la communication avec le moniteur est en place, la communication entre le superviseur et le robot doit être ouverte. Si la communication est active, il faut envoyer un message d'acquittement au moniteur. En cas d'échec, un message le signalant est renvoyé au moniteur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
 }
 %%%
 \stepcounter{cptreq}
-\subsection{Fonctionnalité \thecptreq}
+\subsection{Fonctionnalité \thecptreq }
 
 \paragraph{Description :} La communication entre le robot et le superviseur doit être surveillée par un mécanisme de compteur afin de détecter une perte du médium de communication.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Nous avons traité cette fonctionnalité par le développement d'un thread périodique th\_watchdog. Celui-ci indique au robot qu'il doit démarrer en mode watchdog, et attend que celui-ci confirme son démarrage. Ensuite le moniteur envoit des messages périodiquement au robot (toutes les 500ms). Dans notre diagramme nous avons déclaré incrémenté notre compteur à chaque réception de message et décrementé à chaque perte de message. Au final nous n'avons pas implémenté notre code comme sur notre schéma de conception. Nous avons choisis de déclarer la connexion comme perdue uniquement si trois messages de suite n'ont pas de réponse ce qui parait plus logique. Si la connexion est perdue le système entier s'éteint, comme on peut ci-dessous (fonctionnalité 9). }
 
 %%%
 \stepcounter{cptreq}
-\subsection{Fonctionnalité \thecptreq}
+\subsection{Fonctionnalité \thecptreq }
 
 \paragraph{Description :} Lorsque la communication entre le robot et le superviseur est perdue, un message spécifique doit être envoyé au moniteur. Le système doit fermer la communication entre le robot et le superviseur et se remettre dans un état initial permettant de relancer la communication.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Cette fonctionnalité a été traitée à la suite de la précédente dans le thread th\_watchdog, si une perte de connection est détectée, un message s'écrit sur la console, un message MESSAGE\_ANSWER\_ROBOT\_TIMEOUT est envoyé au moniteur, la communication avec le robot est fermée et la variable RobotStarted est remise à 0.}
 
 %%%
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Lorsque l'utilisateur demande, via le moniteur, le démarrage sans watchdog, le robot doit démarrer dans ce mode. En cas de succès, un message d'acquittement est retourné au moniteur. En cas d'échec, un message indiquant l'échec est transmis au moniteur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
 }
 %%%
 \stepcounter{cptreq}
@@ -350,16 +369,15 @@ Compétences évaluées :
 
 Une fois le démarrage effectué, le robot doit rester vivant en envoyant régulièrement le message de rechargement du watchdog.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Cette fonctionnalité est implémentée dans le thread th\_startRobot. Une variable partagée (WD) nous permet de stocker le mode de connection, et dans ce thread, un message est envoyé au moniteur lui indiquant avec quel mode s'est connecté le robot.}
 
 %%%
-{\color{gray}
+{\color{black}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq *}
 
 \paragraph{Description :} Lorsque qu'un ordre de mouvement est reçu par le superviseur, le robot doit réaliser ce déplacement en moins de 100~ms.
 
-\paragraph{\color{black}Réalisation :}  {\color{blue} Cette fonctionnalité a été implémentée à l'aide d'une tâche qui envoie toutes les 100~ms un ordre de mouvement au robot une fois que celui-ci est démarré (tâche th\_move). Cette implémentation ne garantit pas que le temps soit inférieur à 100~ms entre la réception du message et sa prise en compte par le robot. En effet, le temps de traitement de la réception par la tâche th\_receiveFromMon, le temps de traitement de la tâche th\_move et celui de l'envoi de l'ordre via le Xbee ne sont pas considérés. Afin de réduire ces délais, les priorités de  th\_receiveFromMon et de th\_move sont élevés mais ne permettent pas de garantir l'exigence de temps. Augmenter la fréquence de la tâche th\_move permettrait de tenir cette contrainte, mais risque de surcharger la communication avec le robot (une version avec l'envoi de l'ordre que s'il a changé serait souhaitable). Finalement, une version asynchrone (attente d'un événement-donnée entre th\_receiveFromMon et de th\_move) aurait été préférable. Cependant, après discussion avec le client, la version périodique à 100~ms est cependant validée.}
 }
 %%%
 \stepcounter{cptreq}
@@ -367,28 +385,28 @@ Une fois le démarrage effectué, le robot doit rester vivant en envoyant régul
 
 \paragraph{Description :} Le niveau de la batterie du robot doit être mis à jour toutes les 500~ms sur le moniteur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Nous avons implémenté cette fonctionnalité avec le thread th\_battery qui renvoit toutes les 500ms le niveau de batterie du robot au moniteur.}
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
 
 \paragraph{Description :} La caméra doit être démarrée suite à une demande provenant du moniteur. Si l'ouverture de la  caméra a échoué, il faut envoyer un message au moniteur.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Le thread th\_StartCamera sera lancé suite à l'appui d'un bouton et un message du moniteur à ce thread entrainera le démarrage de la caméra. Si ce démarrage échoue, un message est renvoyé au moniteur (StartCameraError) et le thread se termine. Si le démarrage fonctionne le thread th\_RecordCamera est démarré.}
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
 
 \paragraph{Description :} Dès que la caméra est ouverte, une image doit être envoyée au moniteur toutes les 100 ms.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Une fois que le thread th\_RecordCamera est lancé, il boucle périodiquement toutes les 100ms. Il vérifie que la caméra est toujours ouverte, et si oui il teste le mode de capture. Si la variable partagée mode\_image est vrai, alors une image est renvoyée au moniteur à chaque boucle.}
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
 
 \paragraph{Description :} La caméra doit être fermée suite à une demande provenant du moniteur. Un message doit être envoyé au moniteur pour signifier l'acquittement de la demande. L'envoi périodique des images doit alors être stoppé.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Si une demande de fermeture de caméra est faites par le moniteur (MESSAGE\_CAMERA\_CLOSE) alors la camera sera fermée par le thread th\_ReceiveFromMon. Ainsi le thread th\_RecordCamera va voir que la caméra a été fermée et cessera de prendre des images. Nous ne renvoyons pas d'acquittement au moniteur.  }
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
@@ -401,27 +419,30 @@ L'utilisateur doit ensuite valider visuellement via le moniteur si l'arène a bi
  	\item annuler la recherche : dans ce cas, le superviseur doit simplement retourner dans son mode d'envoi périodique des images et invalider la recherche.
 \end{itemize}
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Lorsqu'une demande de rechercher d'arène arrive du moniteur, le thread th\_arena se met en route car son sémaphore est libéré. Il prend ensuite le sémaphore sem\_recordCamera, ce qui va mettre en pause le thread th\_RecordCamera jusqu'à la libération du sémaphore. L'envoi périodique des images est donc stoppé.\\
+Le thread th\_arena va donc chercher l'arène et si il la trouve une image va être envoyé au moniteur MESSAGE\_CAM\_IMAGE. Sinon le moniteur sera notifié de l'échec.\\
+L'utilisateur va ensuite confirmer si l'image est valide. Si c'est le cas, le moniteur enverra le message MESSAGE\_CAM\_ARENA\_CONFIRM et la variable arenaOK deviendra true. Sinon le moniteur enverra le message MESSAGE\_CAM\_ARENA\_CONFIRM et la variable arenaOK deviendra false. \\
+Le thread th\_arena regardera ensuite la valeur de la variable arenaOK, si elle est true la photo sera sauvegardée dans la variable partagée ImgArena. Sinon il ne se passe rien. Après cela le semaphore sem\_recordCamera est relaché et le thread th\_RecordCamera n'est donc plus en pause et l'envoi périodique des images recommence.}
+
 %%%
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
 
 \paragraph{Description :} Suite à une demande de l'utilisateur de calculer la position du robot, le superviseur doit calculer cette position, dessiner sur l'image le résultat et envoyer un message au moniteur avec la position toutes les 100~ms. Si le robot n'a pas été trouvé, un message de position est envoyé avec une position (-1,-1).
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} La gestion du mode de capture (image ou position) est géré par les deux variables partagées mode\_image et mode\_position. Ces variables sont respectivement mises à true lorsque le moniteur envoi MESSAGE\_CAM\_IMAGE ou un message MESSAGE\_CAM\_POSITION. A chacune de ces boucles, le thread th\_RecordCamera va vérifier laquelle des deux variables est vrai, et va entrer dans le mode correspondant. On a déjà détailler le mode image plus haut.\\ \\
+Le mode position que nous avons implémenté prend une image , dessine l'arène précédemment prise en photo dessus et ensuite cherche les robots. L'image ainsi dessinée est ensuite renvoyée au moniteur. Ainsi comme nous ne renvoyons pas la position du robot il n'y a pas d'envoi (-1,-1) en cas d'échec. Nous n'avons pas réussit à tester cette fonctionnalité mais nous prévoyons des problèmes en cas d'échec vu qu'il n'est pas traité.}
 \stepcounter{cptreq}
 \subsection{Fonctionnalité \thecptreq}
 
 \paragraph{Description :} Suite à une demande de l'utilisateur de stopper le calcul de la position du robot, le superviseur doit rebasculer dans un mode d'envoi de l'image sans le calcul de la position.
 
-\paragraph{\color{black}Réalisation :}  {\color{red} indiquez si la fonctionnalité est traitée et s'il y a des remarques particulières.}
+\paragraph{\color{black}Réalisation :}  {\color{black} Comme décrit dans la fonctionnalité précédente, le mode de prise d'image est testée à chaque boucle du thread th\_RecordCamera, donc si l'utilisateur le change, ce changement sera pris en compte avec les variables mode\_position et mode\_image. }
 
 
 %%%%%%%%%%%%%%%%%%%
 % TRANSFORMATION AADL2XENO
 \section{Transformation AADL vers Xenomai}
- 
- {\color{red} Cette section est consacrée à la méthode pour passer d'un modèle AADL à un code sous Xenomai. Pour chacun des éléments AADL, vous expliquerez {\bf comment vous l'avez traduit en code} et quels {\bf services de Xenomai} vous avez utilisés {\bf en expliquant ce qu'ils font}. Chaque élément devra être illustré avec des {\bf extraits de code de votre projet}.}
  
  % THREAD
 \subsection{Thread}
@@ -429,7 +450,7 @@ L'utilisateur doit ensuite valider visuellement via le moniteur si l'arène a bi
 \subsubsection{Instanciation et démarrage}
  {\color{blue} Expliquer comment vous implémentez sous Xenomai l'instanciation et le démarrage d'un  thread AADL.}
  
- {\color{blue} {\bf Exemple de réponse} : Chaque thread a été implémenté par un {\tt RT\_TASK} déclarés dans le fichier {\tt tasks.h}. La création de la tâche se fait à l'aide du service {\tt rt\_task\_create} et son démarrage à l'aide de {\tt rt\_task\_start}. Toutes les tâches sont crées dans la méthode {\tt init} de {\tt tasks.cpp} et démarrées dans la méthode {\tt run}.
+ {\color{black} {Chaque thread a été implémenté par un {\tt RT\_TASK} déclarés dans le fichier {\tt tasks.h}. La création de la tâche se fait à l'aide du service {\tt rt\_task\_create} et son démarrage à l'aide de {\tt rt\_task\_start}. Toutes les tâches sont crées dans la méthode {\tt init} de {\tt tasks.cpp} et démarrées dans la méthode {\tt run}.
 
 Par exemple, pour la tâche {\tt th\_server}, sa déclaration est faite ligne 73 dans le fichier {\tt tasks.h}
 \begin{verbatim}
@@ -447,20 +468,40 @@ et son démarrage ligne 146 avec
 
 % CODE THREAD
 \subsubsection{Code à exécuter}
- {\color{blue} Comment se fait le lien sous Xenomai entre le thread et le traitement à exécuter.}
+ {\color{blue} Comment se fait le lien sous Xenomai entre le thread et le traitement à exécuter.}\\
+ 
+ {\color{black} La fonction suivante permet de faire the lien entre un thread et son traitement}
+\begin{verbatim}
+  int rt_task_start(RT_TASK * task, void(*entry)(void*cookie),void*cookie);
+\end{verbatim}
+ 
 
 % PRIORITE THREAD
 \subsubsection{Niveau de priorités}
- {\color{blue} Expliquer comment vous fixez sous Xenomai le niveau de priorité d'un thread AADL.}
+ {\color{blue} Expliquer comment vous fixez sous Xenomai le niveau de priorité d'un thread AADL.}\\
+ 
+{\color{black} Il y a plusieurs façon de la faire mais nous avons adopté la suivante lors de la création des tâches: }
+\begin{verbatim}
+  rt_task_create(RT_TASK * task,const char *name, int stksize, int prio, int mode);
+\end{verbatim}
 
 % PERIODICITE THREAD
 \subsubsection{Activation périodique}
- {\color{blue} Expliquer comment vous rendez périodique l'activation d'un thread AADL sous Xenomai.}
+ {\color{blue} Expliquer comment vous rendez périodique l'activation d'un thread AADL sous Xenomai.}\\
+ 
+{\color{black} Afin de rendre périodique un thread il faut déjà déclarer sa période}
+\begin{verbatim}
+  rt_task_set_periodoc(RT_TASK * task,RTIME idate, RTIME period);
+\end{verbatim}
+{\color{black} Ensuite il faut mettre la ligne suivante dans le while du thread:}
+\begin{verbatim}
+  rt_task_wait_period(NULL);
+\end{verbatim}
 
 % THREAD EVENEMENTIEL
 \subsubsection{Activation événementielle}
- {\color{blue} Expliquer les moyens mis en {\oe}uvre dans l'implémentation sous Xenomai pour gérer les activations événementielles d'un thread AADL.}
-
+ {\color{blue} Expliquer les moyens mis en {\oe}uvre dans l'implémentation sous Xenomai pour gérer les activations événementielles d'un thread AADL.}\\ \\
+{\color{black} Sous Xenomai nous pouvions utiliser des sémaphores (pour bloquer/libérer des tâches) et des mutex (pour proteger des variables partagées).}
  
  % PORT D'EVENEMENT
 \subsection{Port d’événement}
@@ -469,13 +510,19 @@ et son démarrage ligne 146 avec
 \subsubsection{Instanciation}
  {\color{blue} Comment avez-vous instancié un port d'événement ?}\\
  
+ {\color{black} Une fois de plus, sémaphore et mutex sur variables partagées.}
+ 
  % ENVOI PORT D'EVENEMENT
 \subsubsection{Envoi d’un événement}
- {\color{blue} Quels services ont été employés pour signaler un événement ?}
+ {\color{blue} Quels services ont été employés pour signaler un événement ?} \\
+ 
+ {\color{black} Afin de signaler un événement on peut: écrire dans une queue, libérer un sémaphore ou mettre à jours une variable partagée.}
 
 % RECEPTION PORT D'EVENEMENT
 \subsubsection{Réception d’un événement}
- {\color{blue} Comment se fait l'attente d'un événement ?}
+ {\color{blue} Comment se fait l'attente d'un événement ?}\\
+ 
+ {\color{black} La reception d'un événement peut se faire par une attente d'un sémaphore très longue (TM\_INFINITE) que nous avons utilisé pour le thread th\_RecordCamera. Normalement le premier élément à se mettre en attente pour un sémaphore sera le premier à l'obtenir.}
 
 % DONNEE PARTAGEE
 \subsection{Donnée partagée}
@@ -483,25 +530,35 @@ et son démarrage ligne 146 avec
 % INSTANCIATION DONNEE PARTAGEE
 \subsubsection{Instanciation}
  {\color{blue} Quelle structure instancie une donnée partagée ?}
+ 
+ {\color{black} Une donnée partagée est une variable globale, protégée par un mutex donc n'importe quel thread peut l'instancier.
 
 % LECTURE/ECRITURE DONNEE PARTAGEE
 \subsubsection{Accès en lecture et écriture}
- {\color{blue} Comment garantissez-vous sous Xenomai l'accès à une donnée partagée ?}
+ {\color{blue} Comment garantissez-vous sous Xenomai l'accès à une donnée partagée ?}\\
+ 
+ {\color{black} Pour garantir l'accès sécurisé à une donnée partagée sous Xenomai il faut utiliser un mutex de type RT\_MUTEX.}
 
 % PORT D'EVENEMENT-DONNEES
 \subsection{Ports d’événement-données}
 
 % INSTANCIATION PORT D'EVENEMENT-DONNEES
 \subsubsection{Instanciation}
- {\color{blue} Donnez la solution retenue pour implémenter un port d'événement-données avec Xenomai.}
+ {\color{blue} Donnez la solution retenue pour implémenter un port d'événement-données avec Xenomai.} \\
+ 
+ {\color{black} Il faut utiliser une RT\_QUEUE comme on a pu voir dans le thread th\_receiveFromMon.}
 
 % ENVOI PORT D'EVENEMENT-DONNEES
 \subsubsection{Envoi d’une donnée}
- {\color{blue} Quels services avez-vous employés pour envoyer des données ?}
+ {\color{blue} Quels services avez-vous employés pour envoyer des données ?}\\
+ 
+{\color{black} Pour envoyer des données il faut écrire dans le RT\_QUEUE.}
 
 % RECEPTION PORT D'EVENEMENT-DONNEES
 \subsubsection{Réception d’une donnée}
- {\color{blue} Quels services avez-vous employés pour recevoir des données ?}
+ {\color{blue} Quels services avez-vous employés pour recevoir des données ?} \\
+ 
+ {\color{black} Pour envoyer des données il faut lire dans le RT\_QUEUE.}
  
 
 
