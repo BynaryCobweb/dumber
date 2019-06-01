@@ -527,7 +527,7 @@ void Tasks::Watchdog(void *arg) {
 	WriteInQueue(&q_messageToMon,new Message(MESSAGE_ANSWER_ROBOT_TIMEOUT)); //message monitor
 
 	rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-    robot.Open();  //commnication robot close
+    robot.Close();  //commnication robot close
     rt_mutex_release(&mutex_robot);
 
 	rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
