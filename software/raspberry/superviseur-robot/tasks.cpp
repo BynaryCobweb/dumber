@@ -186,7 +186,7 @@ void Tasks::Init() {
     /**************************************************************************************/
     /* Message queues creation                                                            */
     /**************************************************************************************/
-    if ((err = rt_queue_create(&q_messageToMon, "q_messageToMon", sizeof (Message*)*50, Q_UNLIMITED, Q_FIFO)) < 0) {
+    if ((err = rt_queue_create(&q_messageToMon, "q_messageToMon", sizeof (Message*)*5000, Q_UNLIMITED, Q_FIFO)) < 0) {
         cerr << "Error msg queue create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -353,6 +353,14 @@ void Tasks::ReceiveFromMonTask(void *arg) {
 			rt_sem_v(&sem_startRobot);
 		} else if (msgRcv->CompareID(MESSAGE_CAM_OPEN)){
 			rt_sem_v(&sem_camera);
+		} else if(msgRcv->CompareID(MESSAGE_CAM_CLOSE)){
+			rt_mutex_acquire(&mutex_camera,TM_INFINITE);
+			camera.Close();			
+			rt_mutex_release(&mutex_camera);
+			
+			rt_mutex_acquire(&mutex_camStarted,TM_INFINITE);
+			camStarted=0;
+			rt_mutex_release(&mutex_camStarted);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
@@ -614,14 +622,9 @@ void Tasks::StartCamera(void * args){
 			rt_mutex_acquire(&mutex_camStarted,TM_INFINITE);
 			camStarted=1;
 			rt_mutex_release(&mutex_camStarted);
-			cout << "ON A REUSSI A OUVRIR LA CAMERA" << endl << flush;
 			rt_sem_v(&sem_recordCamera);
 		}
 		else{
-			cout << "ON A PAS REUSSI A OUVRIR LA CAMERA" << endl << flush;
-			rt_mutex_acquire(&mutex_camStarted,TM_INFINITE);
-			camStarted=0;
-			rt_mutex_release(&mutex_camStarted);
 			WriteInQueue(&q_messageToMon,new Message(MESSAGE_ANSWER_NACK));
 		}
 
@@ -640,15 +643,19 @@ void Tasks::RecordCamera(void * args){
 	rt_task_set_periodic(NULL, TM_NOW,rt_timer_ns2ticks(100000000));
 
 	bool MImg;
+	bool camOpen;
 	Message msgImg;
 	while(1){
+
+		rt_mutex_acquire(&mutex_camera,TM_INFINITE);
+		camOpen=camera.IsOpen();
+		rt_mutex_release(&mutex_camera);
+
 		rt_mutex_acquire(&mutex_modeImg, TM_INFINITE);
 		MImg=modeImg;		
-		rt_mutex_release(&mutex_modeImg);
+		rt_mutex_release(&mutex_modeImg);=
 
-		if(MImg){ //mode image
-
-			rt_mutex_acquire(&mutex_SavedImage,TM_INFINITE);
+		if(camOpen && MImg){ //mode image=
 
 			rt_mutex_acquire(&mutex_camera,TM_INFINITE);			
 			SavedImage=camera.Grab().Copy();
