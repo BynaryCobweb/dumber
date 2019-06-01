@@ -721,50 +721,49 @@ void Tasks::ArenaTask(void * args){
     // Synchronization barrier (waiting that all tasks are started)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
-	bool isOK=true;
-	Img* img;
+	bool isOK;
 
 	while(1){
 
 		rt_sem_p(&sem_arena,TM_INFINITE);
-	
-		Arena* ar = new Arena();
 
-		while(ar->IsEmpty() && isOK){
-			rt_mutex_acquire(&mutex_SavedImage,TM_INFINITE);
-			img = SavedImage->Copy();
-			rt_mutex_release(&mutex_SavedImage);
-
-			*ar=img->SearchArena();
-
-			rt_mutex_acquire(&mutex_arenaOK,TM_INFINITE);
-			isOK=arenaOK;
-			rt_mutex_release(&mutex_arenaOK);
-		}
 		//pausing thread recordCamera	
-		if(isOK){
-			rt_sem_p(&sem_recordCamera,TM_INFINITE);
-				cout << "trying to draw arena "<< endl <<flush;
-				img->DrawArena(*ar);
+		rt_sem_p(&sem_recordCamera,TM_INFINITE);
 
-				WriteInQueue(&q_messageToMon,new MessageImg(MESSAGE_CAM_IMAGE, img));
+		rt_mutex_acquire(&mutex_SavedImage,TM_INFINITE);
 
-				rt_sem_p(&sem_arena_OK,TM_INFINITE);
-
-				rt_mutex_acquire(&mutex_arenaOK,TM_INFINITE);
-				isOK= arenaOK;
-				rt_mutex_release(&mutex_arenaOK);
-
-
-				if(isOK){
-					rt_mutex_acquire(&mutex_ImgArena,TM_INFINITE);
-					ImgArena=SavedImage;
-					rt_mutex_release(&mutex_ImgArena);
-				}
-			rt_sem_v(&sem_recordCamera);
-		}else{
+		Img* img = SavedImage->Copy();
+		Arena ar = img->SearchArena();
+		cout << "CHECKING IF ARENA IS EMPTY OR NOT " << endl << flush;
+		if(ar.IsEmpty()){
+			cout << "Arena is empty" << endl << flush;
 			WriteInQueue(&q_messageToMon,new Message(MESSAGE_ANSWER_NACK));
 		}
+		else{
+			cout << "drawing arena" << endl << flush;
+			img->DrawArena(SavedImage->SearchArena());
+
+			WriteInQueue(&q_messageToMon,new MessageImg(MESSAGE_CAM_IMAGE, img));
+
+			rt_sem_p(&sem_arena_OK,TM_INFINITE);
+			
+			rt_mutex_acquire(&mutex_arenaOK,TM_INFINITE);
+			isOK= arenaOK;
+			rt_mutex_release(&mutex_arenaOK);
+
+			cout << "is arena ok?" << endl << flush;
+			if(isOK){
+				cout << "yes" << endl << flush;
+				rt_mutex_acquire(&mutex_ImgArena,TM_INFINITE);
+				ImgArena=SavedImage;
+				rt_mutex_release(&mutex_ImgArena);
+			}
+			cout << "end asking arena" << endl << flush;
+		}
+
+		cout << "relaunch recordCamera after asking arena" << endl << flush;
+		rt_mutex_release(&mutex_SavedImage);		
+		rt_sem_v(&sem_recordCamera);
 
 	}
 }
